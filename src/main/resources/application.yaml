@@ -1,0 +1,65 @@
+spring:
+  application:
+    name: CarDiag
+  datasource:
+    url: jdbc:postgresql://localhost:5432/cardiag
+    username: pcodes
+    password: pcodes
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+    database: PostgreSQL
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+  servlet:
+    multipart:
+      max-file-size: 50MB
+springdoc:
+  default-produces-media-type: application/json
+
+application:
+  file:
+    uploads:
+      media-output-path: ./uploads
+  security:
+    jwt:
+      secret: 8wWYjFpCy6Otp48mdnWDgkTjt5IjPPJqAKpqKhzAEZM=
+      expiration: 86400000 #1day
+      refresh-token:
+        expiration: 604800000 #7 days
+  gemini:
+    api:
+      key: ${GEMINI_API_KEY}
+      base-url: https://generativelanguage.googleapis.com/v1beta
+      models:
+        embedding: text-embedding-004
+        vision: gemini-1.5-flash
+        llm: gemini-1.5-pro
+      timeout-seconds: 30
+  youtube:
+    api:
+      key: ${YOUTUBE_API_KEY}
+      base-url: https://www.googleapis.com/youtube/v3
+      results-per-fault: 3
+      cache-ttl-hours: 168
+
+  cardiag:
+    vector:
+      dimensions: 768
+      similarity-threshold: 0.75
+      top-k: 3
+    cache:
+      embedding-ttl-seconds: 86400
+      diagnosis-ttl-seconds: 3600
+      youtube-ttl-seconds: 604800
+    seed:
+      input-path: classpath:seed/faults.json
