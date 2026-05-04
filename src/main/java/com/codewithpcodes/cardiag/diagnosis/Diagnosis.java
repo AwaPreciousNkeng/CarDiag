@@ -47,6 +47,7 @@ public class Diagnosis {
     private String llmReport;
 
     @Column(nullable = false)
+    @Builder.Default
     private Boolean isLowConfidence = false;
 
     private String rawInputHash;

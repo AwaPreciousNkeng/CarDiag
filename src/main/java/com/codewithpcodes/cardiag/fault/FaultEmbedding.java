@@ -26,10 +26,12 @@ public class FaultEmbedding {
 
     @Enumerated(EnumType.STRING)
     private EmbeddingModality modality;
+
     @Column(name = "embedding", columnDefinition = "vector(768)", nullable = false)
     private PGvector embedding;
 
     @Column(name = "model_version", nullable = false)
+    @Builder.Default
     private String modelVersion = "text-embedding-004";
 
     @CreationTimestamp

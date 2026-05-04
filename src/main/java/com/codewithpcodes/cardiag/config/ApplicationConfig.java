@@ -1,9 +1,13 @@
 package com.codewithpcodes.cardiag.config;
 
 import com.codewithpcodes.cardiag.user.UserRepository;
+import com.pgvector.PGvector;
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.init.DataSourceInitializer;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -12,6 +16,9 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+
+import javax.sql.DataSource;
+import java.sql.Connection;
 
 @Configuration
 @RequiredArgsConstructor
@@ -43,5 +50,12 @@ public class ApplicationConfig {
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    public CommandLineRunner pgvectorInitializer(JdbcTemplate jdbcTemplate) {
+        return args -> {
+            jdbcTemplate.execute("CREATE EXTENSION IF NOT EXISTS vector");
+        };
     }
 }
