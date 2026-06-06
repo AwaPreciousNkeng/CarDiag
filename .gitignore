@@ -1,0 +1,20 @@
+Cardiag-server/HELP.md
+Cardiag-server/target/
+Cardiag-server/.mvn/wrapper/maven-wrapper.jar
+Cardiag-server/!**/src/main/**/target/
+Cardiag-server/!**/src/test/**/target/
+
+### STS ###
+Cardiag-server/.apt_generated
+Cardiag-server/.classpath
+Cardiag-server/.factorypath
+Cardiag-server/.project
+Cardiag-server/.settings
+Cardiag-server/.springBeans
+Cardiag-server/.sts4-cache
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
