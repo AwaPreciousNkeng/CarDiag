@@ -24,15 +24,20 @@ public class YoutubeCache {
     @JoinColumn(name = "fault_id", nullable = false)
     private Fault fault;
 
+    @Column(nullable = false)
     private String videoId;
 
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String title;
 
+    @Column(columnDefinition = "TEXT")
     private String channelName;
 
+    @Column(columnDefinition = "TEXT")
     private String thumbnailUrl;
 
-    private String  videoUrl;
+    @Column(nullable = false, columnDefinition = "TEXT")
+    private String videoUrl;
 
     @CreationTimestamp
     @Column(name = "cached_at", nullable = false, updatable = false)

@@ -1,6 +1,6 @@
-package com.codewithpcodes.cardiag.fault;
+package com.codewithpcodes.cardiag.embedding;
 
-import com.pgvector.PGvector;
+import com.codewithpcodes.cardiag.fault.Fault;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -27,12 +27,16 @@ public class FaultEmbedding {
     @Enumerated(EnumType.STRING)
     private EmbeddingModality modality;
 
-    @Column(name = "embedding", columnDefinition = "vector(768)", nullable = false)
-    private PGvector embedding;
+    @Column(columnDefinition = "TEXT")
+    private String sourceText;
 
-    @Column(name = "model_version", nullable = false)
+    @Convert(converter = VectorConverter.class)
+    @Column(name = "embedding", columnDefinition = "vector(1024)", nullable = false)
+    private float[] embedding;
+
+    @Column(name = "model_version")
     @Builder.Default
-    private String modelVersion = "text-embedding-004";
+    private String modelVersion = "voyage-3";
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

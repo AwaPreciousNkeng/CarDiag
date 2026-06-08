@@ -18,35 +18,39 @@ import java.util.List;
 public class Fault {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
+    @Column(name = "id",  nullable = false, unique = true)
+    private String id;
 
-    @Column(nullable = false)
+    @Column(name = "name", nullable = false)
     private String name;
 
-    @Column(nullable = false, unique = true)
-    private String slug;
-
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "category", nullable = false)
     private FaultCategory category;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "urgency", nullable = false)
     private UrgencyLevel urgency;
 
-    @Column(nullable = false)
+    @Column(name = "description", nullable = false)
     private String description;
 
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "fault_causes", joinColumns = @JoinColumn(name = "fault_id"))
+    @Column(name = "cause")
     private List<String> causes;
 
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "fault_symptoms", joinColumns = @JoinColumn(name = "fault_id"))
+    @Column(name = "symptom")
     private List<String> symptoms;
 
     @Column(name = "repair_tips", nullable = false)
-    private String repairTips;
+    private List<String> repairTips;
 
-    @Column(name = "warning_light")
-    private String warningLight;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "warning_light", nullable = false)
+    private WarningLight warningLight;
 
     @Column(name = "sound_pattern")
     private String soundPattern;

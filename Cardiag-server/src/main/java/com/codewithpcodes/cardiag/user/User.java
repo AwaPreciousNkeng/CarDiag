@@ -4,12 +4,12 @@ package com.codewithpcodes.cardiag.user;
 import com.codewithpcodes.cardiag.token.Token;
 import jakarta.persistence.*;
 import lombok.*;
-import org.springframework.data.annotation.CreatedDate;
+import org.hibernate.annotations.CreationTimestamp;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.List;
 
@@ -43,7 +43,7 @@ public class User implements UserDetails {
     private Language language = Language.ENGLISH;
 
 
-    private String profilePicturePath;
+    private String profilePictureUrl;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -52,10 +52,10 @@ public class User implements UserDetails {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     private List<Token> tokens;
 
-    @CreatedDate
+    @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     @Builder.Default
-    private LocalDateTime createdAt = LocalDateTime.now();
+    private OffsetDateTime createdAt = OffsetDateTime.now();
 
     @Override
     public @NonNull Collection<? extends GrantedAuthority> getAuthorities() {

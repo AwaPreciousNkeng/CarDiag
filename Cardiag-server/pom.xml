@@ -10,7 +10,7 @@
     </parent>
     <groupId>com.codewithpcodes</groupId>
     <artifactId>CarDiag</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>1.0.0</version>
     <name>CarDiag</name>
     <description>CarDiag</description>
     <url/>
@@ -27,7 +27,7 @@
         <url/>
     </scm>
     <properties>
-        <java.version>17</java.version>
+        <java.version>25</java.version>
         <spring-ai.version>2.0.0-M5</spring-ai.version>
     </properties>
     <dependencies>
@@ -75,6 +75,10 @@
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-jackson</artifactId>
             <version>0.13.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webflux</artifactId>
         </dependency>
         <dependency>
             <groupId>org.postgresql</groupId>

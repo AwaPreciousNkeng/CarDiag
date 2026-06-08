@@ -14,6 +14,12 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
+        jdbc:
+          batch_size: 100
+          batch_versioned_data: true
+        order_updates: true
+        order_inserts: true
+
     database: PostgreSQL
   data:
     redis:
@@ -30,27 +36,29 @@ application:
   file:
     uploads:
       media-output-path: ./uploads
+
+  embedding:
+    enabled: true
+  ingestion:
+    enabled: true
+    json-path: src/main/resources/fault.json
   security:
     jwt:
       secret: 8wWYjFpCy6Otp48mdnWDgkTjt5IjPPJqAKpqKhzAEZM=
       expiration: 86400000 #1day
       refresh-token:
         expiration: 604800000 #7 days
-  gemini:
-    api:
-      key: ${GEMINI_API_KEY}
-      base-url: https://generativelanguage.googleapis.com/v1beta
-      models:
-        embedding: text-embedding-004
-        vision: gemini-1.5-flash
-        llm: gemini-1.5-pro
-      timeout-seconds: 30
+  voyage:
+    ai:
+      api-key: ${VOYAGE_API_KEY}
+      url: https://api.voyageai.com/
+      model: voyage-3
   youtube:
     api:
       key: ${YOUTUBE_API_KEY}
-      base-url: https://www.googleapis.com/youtube/v3
+      base-url: https://www.googleapis.com
       results-per-fault: 3
-      cache-ttl-hours: 168
+      cache-ttl-days: 7
 
   cardiag:
     vector:
@@ -61,5 +69,3 @@ application:
       embedding-ttl-seconds: 86400
       diagnosis-ttl-seconds: 3600
       youtube-ttl-seconds: 604800
-    seed:
-      input-path: classpath:seed/faults.json
