@@ -19,8 +19,17 @@ spring:
           batch_versioned_data: true
         order_updates: true
         order_inserts: true
-
     database: PostgreSQL
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: 813841474406-mqcd2599t1vm5q0g26g7l0afjm2a7ulf.apps.googleusercontent.com
+            client-secret: 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
+            scope:
+              - profile
+              - email
   data:
     redis:
       host: localhost
@@ -48,6 +57,14 @@ application:
       expiration: 86400000 #1day
       refresh-token:
         expiration: 604800000 #7 days
+  openai:
+    api:
+      key: ${OPEN_AI_API_KEY}
+      base-url: https://api.openai.com/v1
+      vision-model: gpt-4o
+      audio-model: gpt-4o-audio-preview
+      embedding-model: text-embedding-3-small
+      max-token: 1024
   voyage:
     ai:
       api-key: ${VOYAGE_API_KEY}
@@ -59,13 +76,3 @@ application:
       base-url: https://www.googleapis.com
       results-per-fault: 3
       cache-ttl-days: 7
-
-  cardiag:
-    vector:
-      dimensions: 768
-      similarity-threshold: 0.75
-      top-k: 3
-    cache:
-      embedding-ttl-seconds: 86400
-      diagnosis-ttl-seconds: 3600
-      youtube-ttl-seconds: 604800

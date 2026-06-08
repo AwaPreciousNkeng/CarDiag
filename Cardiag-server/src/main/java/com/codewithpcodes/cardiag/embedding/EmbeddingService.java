@@ -1,13 +1,11 @@
 package com.codewithpcodes.cardiag.embedding;
 
-import com.codewithpcodes.cardiag.config.VoyageAIConfig;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,9 +24,9 @@ public class EmbeddingService {
     private String model;
 
 
-    public List<float[]> embedDocument(List<String> texts) {
-        return callVoyageApi(texts, "document");
-    }
+//    public List<float[]> embedDocument(List<String> texts) {
+//        return callVoyageApi(texts, "document");
+//    }
 
     public float[] embedQuery(String queryText) {
         List<float[]> results = callVoyageApi(List.of(queryText), "query");
