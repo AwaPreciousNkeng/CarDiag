@@ -27,7 +27,7 @@ public class FileService {
 
     public String saveProfilePicture(
             @NonNull MultipartFile sourceFile,
-            @NonNull UUID userId
+            @NonNull Integer userId
     ) {
         validateFile(sourceFile);
         final String subPath = "users/" + userId;
