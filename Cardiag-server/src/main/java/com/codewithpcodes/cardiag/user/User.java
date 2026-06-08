@@ -2,6 +2,7 @@ package com.codewithpcodes.cardiag.user;
 
 
 import com.codewithpcodes.cardiag.token.Token;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -9,6 +10,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.List;
@@ -35,15 +37,30 @@ public class User implements UserDetails {
     @Column(nullable = false, unique = true)
     private String email;
 
-    @Column(nullable = false)
+    @JsonIgnore
     private String password;
+
+    private String profilePictureUrl;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    @Builder.Default
+    private OAuthProvider oAuthProvider = OAuthProvider.NONE;
+
+    private String providerId;
 
     @Builder.Default
     @Column(nullable = false)
-    private Language language = Language.ENGLISH;
+    private boolean accountLocked = false;
 
+    @Builder.Default
+    @Column(nullable = false)
+    private int failedLoginAttempts = 0;
 
-    private String profilePictureUrl;
+    private LocalDateTime lockedUntil;
+
+    private String resetPasswordCode;
+    private LocalDateTime resetPasswordCodeExpiry;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -67,4 +84,7 @@ public class User implements UserDetails {
         return email;
     }
 
+    public String getFullName() {
+        return firstName + " " + lastName;
+    }
 }
