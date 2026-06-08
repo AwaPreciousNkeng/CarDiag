@@ -138,6 +138,39 @@ public class OpenAiService {
     }
 
     /**
+     * Sends the matched fault context and the user's input description
+     * to GPT-4o and receives a rich, human-friendly diagnosis report.
+     * This is the final AI step in the pipeline. pgvector finds the
+     * closest fault — GPT-4o explains it to the user in plain language.
+     *
+     * @param inputDescription  what GPT-4o said when it described the image or audio
+     * @param context the matched fault's full data from PostgreSQL
+     * @return natural language report stored as llmReport in the Diagnosis entity
+     */
+    public String generateDiagnosisReport(String inputDescription, FaultContext context) {
+        log.debug("Generating LLM diagnosis report for fault '{}'", context.faultId());
+
+        OpenAiChatRequest request = OpenAiChatRequest.builder()
+                .model(visionModel)
+                .maxTokens(maxTokens)
+                .messages(List.of(
+                        OpenAiChatRequest.MessageDTO.builder()
+                                .role("user")
+                                .content(List.of(
+                                        OpenAiChatRequest.ContentDTO.builder()
+                                                .type("text")
+                                                .text(buildDiagnosisPrompt(inputDescription, context))
+                                                .build()
+                                ))
+                                .build()
+                ))
+                .build();
+
+        return callChatCompletions(request, "diagnosis report");
+    }
+
+
+    /**
      * Embeds a single query text for similarity search at runtime.
      * Use when a user submits a description for diagnosis.
      *
@@ -262,7 +295,6 @@ public class OpenAiService {
         return "wav";
     }
 
-    // ── Private: Prompts ──────────────────────────────────────
 
     /**
      * Prompt sent to GPT-4o when describing a dashboard image.
@@ -298,6 +330,56 @@ public class OpenAiService {
                 - What mechanical fault or problem it most likely indicates
                 Be specific and technical. Your description will be used to match against known fault patterns.
                 """;
+    }
+
+    /**
+     * Builds the final diagnosis prompt sent to GPT-4o.
+     * We give GPT-4o two things:
+     * 1. What the user submitted (input description)
+     * 2. What our database found (matched fault context)
+     * GPT-4o then generates a clear, plain-language report
+     * the driver can actually understand and act on.
+     */
+    private String buildDiagnosisPrompt(String inputDescription, FaultContext ctx) {
+        return String.format("""
+                You are a professional automotive diagnostic assistant helping a car owner
+                understand a vehicle problem.
+ 
+                WHAT THE USER SUBMITTED:
+                "%s"
+ 
+                MATCHED FAULT FROM DATABASE:
+                - Fault Code:   %s
+                - Name:         %s
+                - Category:     %s
+                - Description:  %s
+                - Urgency:      %s
+                - Causes:       %s
+                - Symptoms:     %s
+                - Repair Tips:  %s
+ 
+                Based on the above, write a clear and friendly diagnosis report for the car owner.
+                Structure your report as follows:
+ 
+                1. WHAT IS WRONG — explain the fault in simple, non-technical language
+                2. WHY IT IS HAPPENING — explain the most likely causes
+                3. HOW URGENT IS THIS — tell them what happens if they ignore it
+                4. WHAT TO DO RIGHT NOW — immediate action the driver should take
+                5. HOW TO FIX IT — brief explanation of the repair process
+ 
+                Keep it conversational and easy to understand.
+                Do not use jargon. Write as if explaining to someone with no mechanical knowledge.
+                """,
+                inputDescription,
+                ctx.faultId(),
+                ctx.faultName(),
+                ctx.category(),
+                ctx.description(),
+                ctx.urgency(),
+                String.join(", ", ctx.causes()),
+                String.join(", ", ctx.symptoms()),
+                String.join(", ", ctx.repairTips())
+        );
     }
 }
 

@@ -27,8 +27,6 @@ public class OpenAiEmbeddingResponse {
         private int index;
     }
 
-    // ── Nested: token usage ───────────────────────────────────
-
     @Data
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class UsageDTO {

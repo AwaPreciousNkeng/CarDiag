@@ -29,27 +29,35 @@ public class Diagnosis {
     @Column(name = "input_type", nullable = false)
     private InputType inputType;
 
+    @Column(columnDefinition = "TEXT")
     private String audioTranscription;
+
+    @Column(columnDefinition = "TEXT")
     private String imageDescription;
+
+    @Column(columnDefinition = "TEXT")
     private String userText;
+
+    @Column(columnDefinition = "TEXT")
     private String combinedContext;
+
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "matched_fault_id")
     private Fault matchedFault;
 
-    @Column(nullable = false)
     private Double confidence;
 
-    @Column(nullable = false)
     private Double distance;
 
+    @Column(columnDefinition = "TEXT")
     private String llmReport;
 
     @Column(nullable = false)
     @Builder.Default
     private Boolean isLowConfidence = false;
 
+    @Column(unique = true)
     private String rawInputHash;
 
     @CreationTimestamp
