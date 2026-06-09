@@ -1,15 +1,15 @@
 package com.codewithpcodes.cardiag.fault;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -20,6 +20,7 @@ public class FaultIngestionService {
 
     private final FaultRepository faultRepository;
     private final ObjectMapper objectMapper;
+    private final ResourceLoader resourceLoader;
 
     private static final int BATCH_SIZE = 100;
 
@@ -81,12 +82,12 @@ public class FaultIngestionService {
     }
 
     private FaultDatabaseDTO readJsonFile(String filePath) {
-        try {
-            File file = new File(filePath);
-            if (!file.exists()) {
-                throw new RuntimeException("JSON file not found at path: " + filePath);
-            }
-            return objectMapper.readValue(file, FaultDatabaseDTO.class);
+        Resource resource = resourceLoader.getResource(filePath);
+        if (!resource.exists()) {
+            throw new RuntimeException("JSON file not found at path: " + filePath);
+        }
+        try (InputStream inputStream = resource.getInputStream()) {
+            return objectMapper.readValue(inputStream, FaultDatabaseDTO.class);
         } catch (IOException e) {
             log.warn("Error reading file: {}", filePath, e);
             throw new RuntimeException("Failed to read or parse JSON file: " + e.getMessage(), e);

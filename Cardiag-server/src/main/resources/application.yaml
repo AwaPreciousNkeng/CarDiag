@@ -45,12 +45,14 @@ application:
   file:
     uploads:
       media-output-path: ./uploads
-
   embedding:
-    enabled: true
+    enabled: false
   ingestion:
-    enabled: true
-    json-path: src/main/resources/fault.json
+    enabled: false
+    json-path: classpath:fault.json
+
+  sync:
+    db-version: 1
   security:
     jwt:
       secret: 8wWYjFpCy6Otp48mdnWDgkTjt5IjPPJqAKpqKhzAEZM=
@@ -59,7 +61,7 @@ application:
         expiration: 604800000 #7 days
   openai:
     api:
-      key: ${OPEN_AI_API_KEY}
+      key: ${OPENAI_API_KEY}
       base-url: https://api.openai.com/v1
       vision-model: gpt-4o
       audio-model: gpt-4o-audio-preview
@@ -68,7 +70,7 @@ application:
   voyage:
     ai:
       api-key: ${VOYAGE_API_KEY}
-      url: https://api.voyageai.com/
+      url: https://api.voyageai.com
       model: voyage-3
   youtube:
     api:
@@ -76,3 +78,5 @@ application:
       base-url: https://www.googleapis.com
       results-per-fault: 3
       cache-ttl-days: 7
+  oauth2:
+    redirect-url: http://localhost:3000/oauth2/redirect

@@ -1,6 +1,7 @@
 package com.codewithpcodes.cardiag.embedding;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -19,14 +20,14 @@ import java.util.stream.StreamSupport;
 public class EmbeddingService {
 
     private final WebClient voyageWebClient;
+    private final ObjectMapper objectMapper;
 
     @Value("${application.voyage.ai.model}")
     private String model;
 
-
-//    public List<float[]> embedDocument(List<String> texts) {
-//        return callVoyageApi(texts, "document");
-//    }
+    public List<float[]> embedDocument(List<String> texts) {
+        return callVoyageApi(texts, "document");
+    }
 
     public float[] embedQuery(String queryText) {
         List<float[]> results = callVoyageApi(List.of(queryText), "query");
@@ -43,35 +44,47 @@ public class EmbeddingService {
                 "input_type", inputType
         );
 
-        JsonNode response = voyageWebClient.post()
-                .uri("v1/embeddings")
+        // Deserialize as String first, then parse manually
+        // This avoids WebClient codec type resolution issues with JsonNode
+        String rawResponse = voyageWebClient.post()
+                .uri("/v1/embeddings")           // fix 1 — leading slash
                 .bodyValue(requestBody)
                 .retrieve()
-                .bodyToMono(JsonNode.class)
+                .bodyToMono(String.class)         // fix 2 — String not JsonNode
                 .block();
 
-        if (response == null || !response.has("data")) {
-            throw new RuntimeException("Invalid or empty response from Voyage AI");
+        if (rawResponse == null || rawResponse.isBlank()) {
+            throw new RuntimeException("Empty response from Voyage AI");
         }
 
-        JsonNode dataArray = response.get("data");
-        List<float[]> embeddings = new ArrayList<>();
+        try {
+            JsonNode response = objectMapper.readTree(rawResponse);
 
-        for (JsonNode item : dataArray) {
-            JsonNode embeddingNode = item.get("embedding");
+            if (!response.has("data")) {
+                throw new RuntimeException("Invalid response from Voyage AI: " + rawResponse);
+            }
 
-            List<Double> doubles = StreamSupport
-                    .stream(embeddingNode.spliterator(), false)
-                    .map(JsonNode::asDouble)
-                    .collect(Collectors.toList());
+            JsonNode dataArray = response.get("data");
+            List<float[]> embeddings = new ArrayList<>();
 
-            embeddings.add(EmbeddingUtils.toFloatArray(doubles));
+            for (JsonNode item : dataArray) {
+                JsonNode embeddingNode = item.get("embedding");
+                List<Double> doubles = StreamSupport
+                        .stream(embeddingNode.spliterator(), false)
+                        .map(JsonNode::asDouble)
+                        .collect(Collectors.toList());
+                embeddings.add(EmbeddingUtils.toFloatArray(doubles));
+            }
+
+            log.debug("Voyage AI returned {} embeddings for {} texts",
+                    embeddings.size(), texts.size());
+
+            return embeddings;
+
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to parse Voyage AI response: "
+                    + e.getMessage(), e);
         }
-
-        log.debug("Voyage AI returned {} embeddings for {} input texts",
-                embeddings.size(), texts.size());
-
-        return embeddings;
     }
 
 }

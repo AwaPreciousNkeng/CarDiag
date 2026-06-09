@@ -1,136 +1,71 @@
 package com.codewithpcodes.cardiag.embedding;
 
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.sql.Timestamp;
-import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 
 @Repository
-@Slf4j
-@RequiredArgsConstructor
-public class FaultEmbeddingRepository {
+public interface FaultEmbeddingRepository extends JpaRepository<FaultEmbedding, Integer> {
 
-    private final JdbcTemplate jdbcTemplate;
+    boolean existsByFaultId(String faultId);
+
+    @Query(value = "SELECT fault_id FROM fault_embeddings", nativeQuery = true)
+    Set<String> findAllEmbeddedFaultIds();
+
+    Optional<FaultEmbedding> findByFaultId(String faultId);
 
     /**
-     * Saves a single fault embedding to the fault_embeddings table.
-     * Uses INSERT ... ON CONFLICT DO UPDATE so this is safe to call
-     * even if an embedding for this fault already exists — it will
-     * simply overwrite it.
+     * Finds top N closest fault embeddings using cosine similarity.
      *
-     * @param faultId   the fault code ID (e.g. "B1200")
-     * @param embedding the 1024-dimensional float vector from Voyage AI
-     */
-    public void save(String faultId, float[] embedding) {
-        String vectorStr = EmbeddingUtils.toVectorString(embedding);
-
-        jdbcTemplate.update("""
-                INSERT INTO fault_embeddings (fault_id, embedding, created_at)
-                VALUES (?, ?::vector, ?)
-                ON CONFLICT (fault_id) DO UPDATE
-                    SET embedding   = EXCLUDED.embedding,
-                        created_at  = EXCLUDED.created_at
-                """,
-                faultId,
-                vectorStr,
-                Timestamp.valueOf(LocalDateTime.now())
-        );
-    }
-
-    /**
-     * Saves a batch of fault embeddings in one transaction.
-     * Much faster than saving one by one for 6000+ records.
+     * queryEmbedding must be passed as a String in pgvector format:
+     * "[0.1, 0.2, 0.3, ...]"
      *
-     * @param faultIds   list of fault code IDs
-     * @param embeddings corresponding list of embedding vectors (same order)
+     * Returns Object[] rows where:
+     *   [0] = fault_id (String)
+     *   [1] = distance (Double)
      */
-    public void saveBatch(List<String> faultIds, List<float[]> embeddings) {
-        if (faultIds.size() != embeddings.size()) {
-            throw new IllegalArgumentException(
-                    "faultIds and embeddings lists must be the same size"
-            );
-        }
-
-        List<Object[]> batchArgs = new java.util.ArrayList<>();
-        Timestamp now = Timestamp.valueOf(LocalDateTime.now());
-
-        for (int i = 0; i < faultIds.size(); i++) {
-            batchArgs.add(new Object[]{
-                    faultIds.get(i),
-                    EmbeddingUtils.toVectorString(embeddings.get(i)),
-                    now
-            });
-        }
-
-        jdbcTemplate.batchUpdate("""
-                INSERT INTO fault_embeddings (fault_id, embedding, created_at)
-                VALUES (?, ?::vector, ?)
-                ON CONFLICT (fault_id) DO UPDATE
-                    SET embedding   = EXCLUDED.embedding,
-                        created_at  = EXCLUDED.created_at
-                """,
-                batchArgs
-        );
-
-        log.debug("Batch saved {} embeddings to pgvector", faultIds.size());
-    }
+    @Query(value = """
+            SELECT fe.fault_id,
+                   (fe.embedding <=> CAST(:queryEmbedding AS vector)) AS distance
+            FROM fault_embeddings fe
+            ORDER BY distance ASC
+            LIMIT :limit
+            """, nativeQuery = true)
+    List<Object[]> findTopMatches(
+            @Param("queryEmbedding") String queryEmbedding,
+            @Param("limit") int limit
+    );
 
     /**
-     * Finds the top N most similar fault embeddings to the given query embedding.
-     * Uses the <=> operator which computes cosine distance.
-     * Cosine distance: 0.0 = identical, 2.0 = completely opposite.
-     * The IVFFlat index on fault_embeddings makes this fast even for 6000+ vectors.
+     * Inserts or updates an embedding for a fault.
      *
-     * @param queryEmbedding the user's input embedding (from Voyage AI embedQuery)
-     * @param limit how many top matches to return (usually 3 to 5)
-     * @return list of FaultMatchDTO sorted by distance (closest first)
+     * embedding must be passed as a String in pgvector format:
+     * "[0.1, 0.2, 0.3, ...]"
      */
-    public List<FaultMatchDTO> findTopMatches(float[] queryEmbedding, int limit) {
-        String vectorStr = EmbeddingUtils.toVectorString(queryEmbedding);
-
-        return jdbcTemplate.query("""
-                SELECT  fault_id,
-                        (embedding <=> ?::vector) AS distance
-                FROM    fault_embeddings
-                ORDER   BY distance ASC
-                LIMIT   ?
-                """,
-                (rs, rowNum) -> new FaultMatchDTO(
-                        rs.getString("fault_id"),
-                        rs.getDouble("distance")
-                ),
-                vectorStr,
-                limit
-        );
-    }
-
-    /**
-     * Checks if an embedding already exists for a given fault ID.
-     * Used during the pipeline to skip already-embedded faults.
-     */
-    public boolean existsByFaultId(String faultId) {
-        Integer count = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM fault_embeddings WHERE fault_id = ?",
-                Integer.class,
-                faultId
-        );
-        return count != null && count > 0;
-    }
-
-    /**
-     * Returns the total number of embeddings stored in pgvector.
-     * Useful for logging pipeline progress.
-     */
-    public long count() {
-        Long count = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM fault_embeddings",
-                Long.class
-        );
-        return count != null ? count : 0L;
-    }
-
+    @Modifying
+    @Transactional // Safe execution boundary
+    @Query(value = """
+            INSERT INTO fault_embeddings (fault_id, modality, source_text, embedding, model_version, created_at)
+            VALUES (:faultId, :modality, :sourceText, CAST(:embedding AS vector), :modelVersion, NOW())
+            -- Include modality in the conflict target if a fault can have multiple embedding types
+            ON CONFLICT (fault_id, modality) DO UPDATE\s
+                SET embedding     = EXCLUDED.embedding,
+                    source_text   = EXCLUDED.source_text,
+                    model_version = EXCLUDED.model_version,
+                    created_at    = NOW()
+           \s""", nativeQuery = true)
+    void upsertEmbedding(
+            @Param("faultId") String faultId,                 // "P0300"
+            @Param("modality") String modality,               // "TEXT_SCRAPED"
+            @Param("sourceText") String sourceText,           // "Fault Code: P0300..."
+            @Param("embedding") String embedding,             // "[0.039, -0.009...]"
+            @Param("modelVersion") String modelVersion        // "voyage-3"
+    );
 }

@@ -13,19 +13,22 @@ import java.time.OffsetDateTime;
 @NoArgsConstructor
 @Builder
 @Entity
-@Table(name = "fault_embeddings")
+@Table(
+        name = "fault_embeddings",
+        uniqueConstraints = @UniqueConstraint(columnNames = "fault_id")
+)
 public class FaultEmbedding {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "fault_id", nullable = false)
     private Fault fault;
 
-    @Enumerated(EnumType.STRING)
-    private EmbeddingModality modality;
+    @Column(name = "modality")
+    private String modality;
 
     @Column(columnDefinition = "TEXT")
     private String sourceText;

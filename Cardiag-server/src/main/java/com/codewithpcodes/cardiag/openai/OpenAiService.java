@@ -169,6 +169,10 @@ public class OpenAiService {
         return callChatCompletions(request, "diagnosis report");
     }
 
+    public List<float[]> embedDocuments(List<String> texts) {
+        log.debug("Embedding {} documents via OpenAI...", texts.size());
+        return callEmbeddingsApi(texts);
+    }
 
     /**
      * Embeds a single query text for similarity search at runtime.
@@ -192,7 +196,7 @@ public class OpenAiService {
     private String callChatCompletions(OpenAiChatRequest request, String context) {
         try {
             OpenAiChatResponse response = openAiWebClient.post()
-                    .uri("/v1/chat/completions")
+                    .uri("/chat/completions")
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(request)
                     .retrieve()
@@ -228,7 +232,7 @@ public class OpenAiService {
 
         try {
             OpenAiEmbeddingResponse response = openAiWebClient.post()
-                    .uri("/v1/embeddings")
+                    .uri("/embeddings")
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(request)
                     .retrieve()

@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -22,30 +23,23 @@ public class VectorSearchService {
 
     @Getter
     private double lastConfidenceScore = 0.0;
+
     @Getter
     private double lastDistance = 0.0;
 
-    /**
-     * Finds the single best matching fault for a given query embedding.
-     * Returns empty if no match meets the confidence threshold —
-     * this prevents showing the user a wrong diagnosis.
-     *
-     * @param queryEmbedding the float[] vector from OpenAI
-     * @return the best matching fault, or empty if confidence is too low
-     */
     public Optional<Fault> findBestMatch(float[] queryEmbedding) {
-        List<FaultMatchDTO> matches = faultEmbeddingRepository.findTopMatches(queryEmbedding, 1);
+        List<FaultMatchDTO> matches = searchPgVector(queryEmbedding, 1); // fix — use helper
 
         if (matches.isEmpty()) {
             lastConfidenceScore = 0.0;
-            lastDistance = 0.0;
+            lastDistance        = 0.0;
             log.warn("pgvector returned no results for query embedding");
             return Optional.empty();
         }
 
         FaultMatchDTO best = matches.getFirst();
         lastConfidenceScore = best.getSimilarityScore();
-        lastDistance = best.getDistance();
+        lastDistance        = best.getDistance();
 
         log.debug("Best match: faultId='{}', similarity={}",
                 best.getFaultId(), best.getSimilarityScore());
@@ -59,16 +53,8 @@ public class VectorSearchService {
         return faultRepository.findById(best.getFaultId());
     }
 
-    /**
-     * Finds the top N closest matching faults for a given query embedding.
-     * Returns only matches that meet the confidence threshold.
-     * Useful when you want to show the user multiple possible faults.
-     * @param queryEmbedding the float[] vector from OpenAI
-     * @param limit          how many results to return
-     * @return list of FaultMatchDTO sorted by similarity (highest first)
-     */
     public List<FaultMatchDTO> findTopMatches(float[] queryEmbedding, int limit) {
-        List<FaultMatchDTO> matches = faultEmbeddingRepository.findTopMatches(queryEmbedding, limit);
+        List<FaultMatchDTO> matches = searchPgVector(queryEmbedding, limit); // fix — use helper
 
         List<FaultMatchDTO> filtered = matches.stream()
                 .filter(FaultMatchDTO::isAboveThreshold)
@@ -80,5 +66,30 @@ public class VectorSearchService {
         return filtered;
     }
 
-}
+    /**
+     * Converts float[] to String, calls the repository native query,
+     * then parses the Object[] rows back into FaultMatchDTO objects.
+     *
+     * This is necessary because:
+     * - JPA native queries cannot bind float[] as a parameter
+     * - The repository returns Object[] not FaultMatchDTO directly
+     */
+    private List<FaultMatchDTO> searchPgVector(float[] queryEmbedding, int limit) {
+        String vectorStr = EmbeddingUtils.toVectorString(queryEmbedding);
 
+        try {
+            List<Object[]> rows = faultEmbeddingRepository.findTopMatches(vectorStr, limit);
+
+            return rows.stream()
+                    .map(row -> new FaultMatchDTO(
+                            (String) row[0],                        // fault_id
+                            ((Number) row[1]).doubleValue()         // distance
+                    ))
+                    .toList();
+
+        } catch (Exception e) {
+            log.error("pgvector search failed: {}", e.getMessage());
+            return Collections.emptyList();
+        }
+    }
+}
